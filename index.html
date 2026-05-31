@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Calcetto Stats</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#00ff87;--bg:#0d0f14;--bg2:#141720;--bg3:#1c2030;--border:rgba(255,255,255,0.07);--border-green:rgba(0,255,135,0.28);--text:#f0f2f5;--text2:#8a92a6;--gold:#ffd700;--silver:#c0c8d8;--bronze:#cd7f32;--red:#ff4d6d;--yellow:#ffd166;--blue:#60a5fa;--green-glow:rgba(0,255,135,0.12)}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px}
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px 0;position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
+.app-title{font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;color:var(--green);letter-spacing:1px;white-space:nowrap}
+.upload-btn{background:transparent;border:1px solid var(--border-green);color:var(--green);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.upload-btn:hover{background:var(--green-glow)}
+#file-input{display:none}
+.file-status{font-size:11px;color:var(--text2);text-align:center;padding:2px 0 10px}
+.tabs{display:flex}
+.tab{flex:1;padding:12px 4px;text-align:center;font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.5px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.page{display:none;padding:20px}
+.page.active{display:block}
+.stats-grid-top{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 8px;text-align:center}
+.stat-card.hl{border-color:var(--border-green)}
+.stat-num{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--green);line-height:1}
+.stat-label{font-size:10px;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:0.4px}
+.extra-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
+.extra-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.extra-icon{font-size:22px;flex-shrink:0}
+.extra-val{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--text);line-height:1}
+.extra-lbl{font-size:11px;color:var(--text2);margin-top:2px}
+.section-title{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px;align-items:end}
+.podium-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
+.podium-item.first{border-color:var(--gold);background:rgba(255,215,0,0.06);transform:translateY(-8px)}
+.podium-item.second{border-color:rgba(192,200,216,0.35)}
+.podium-item.third{border-color:rgba(205,127,50,0.35)}
+.podium-crown{font-size:18px;margin-bottom:4px}
+.podium-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.podium-big{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;color:var(--green)}
+.podium-val{font-size:10px;color:var(--text2)}
+.top-list{margin-bottom:20px}
+.top-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.rank-num{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--text2);min-width:18px;text-align:center}
+.rank-num.gold{color:var(--gold)}.rank-num.silver{color:var(--silver)}.rank-num.bronze{color:var(--bronze)}
+.rank-name{flex:1;font-weight:500;font-size:14px}
+.rank-val{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--green)}
+.rank-sub{font-size:11px;color:var(--text2)}
+.match-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.match-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.match-name{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--green)}
+.match-date{font-size:12px;color:var(--text2)}
+.match-score{font-family:'Oswald',sans-serif;font-size:15px;color:var(--text);text-align:center;margin-bottom:8px;font-weight:600}
+.match-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:start}
+.team-label{font-size:11px;font-weight:600;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:4px}
+.team-label.win{color:var(--green)}.team-label.lose{color:var(--text2)}
+.team-players{font-size:12px;color:var(--text2);line-height:1.6}
+.team-players.winner{color:var(--text)}
+.vs-badge{font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:var(--text2);padding-top:18px;text-align:center}
+.match-mvp{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
+.mvp-name{color:var(--gold);font-weight:600}
+.player-select{width:100%;padding:12px 14px;background:var(--bg2);border:1px solid var(--border-green);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;margin-bottom:20px;appearance:none}
+.player-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.player-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.player-stat-val{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;color:var(--green);line-height:1}
+.player-stat-label{font-size:11px;color:var(--text2);margin-top:3px}
+.badges-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.badge{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid;font-family:'Oswald',sans-serif;letter-spacing:0.4px}
+.badge-gold{color:var(--gold);border-color:rgba(255,215,0,0.35);background:rgba(255,215,0,0.07)}
+.badge-green{color:var(--green);border-color:var(--border-green);background:var(--green-glow)}
+.badge-blue{color:var(--blue);border-color:rgba(96,165,250,0.35);background:rgba(96,165,250,0.07)}
+.cash-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.cash-label{font-size:13px;color:var(--text2)}
+.cash-val{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--yellow)}
+.bar-chart{margin-bottom:16px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-label{font-size:11px;color:var(--text2);min-width:30px;text-align:right}
+.bar-track{flex:1;height:22px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;white-space:nowrap;min-width:28px}
+.bar-fill.win{background:rgba(0,255,135,0.25);color:var(--green)}
+.bar-fill.loss{background:rgba(255,77,109,0.18);color:#ff6b8a}
+.history-match{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.result-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.result-dot.win{background:var(--green)}.result-dot.loss{background:var(--red)}
+.history-match-name{flex:1;font-size:13px;font-weight:500}
+.history-match-date{font-size:11px;color:var(--text2)}
+.history-goals{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;min-width:26px;text-align:right}
+.history-goals.has-goals{color:var(--green)}.history-goals.no-goals{color:var(--text2)}
+.mvp-star{color:var(--gold);font-size:13px}
+.curiosita-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px}
+.curi-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.curi-icon{font-size:20px;margin-bottom:6px}
+.curi-title{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.curi-val{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;color:var(--text);line-height:1.2}
+.curi-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.goal-bars{display:flex;align-items:flex-end;gap:3px;height:80px;margin-bottom:6px}
+.goal-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.goal-bar{width:100%;background:rgba(0,255,135,0.25);border-radius:3px 3px 0 0}
+.goal-bar-lbl{font-size:9px;color:var(--text2)}
+.goal-bar-val{font-family:'Oswald',sans-serif;font-size:10px;color:var(--green);font-weight:600}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">⚽ CALCETTO</div>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">📂 Carica Excel</button>
+    <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(event)">
+  </div>
+  <div class="file-status" id="file-status">Dati caricati — carica il tuo Excel per aggiornare</div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('classifica')">🏆 Classifica</div>
+    <div class="tab" onclick="switchTab('giocatore')">👤 Stats</div>
+    <div class="tab" onclick="switchTab('curiosita')">💡 Curiosità</div>
+  </div>
+</div>
+<div class="page active" id="page-classifica">
+  <div class="stats-grid-top" id="top-stats"></div>
+  <div class="extra-stats" id="extra-stats"></div>
+  <div class="section-title">🥇 Più vittorie</div>
+  <div class="podium" id="podium-vittorie"></div>
+  <div class="section-title">⭐ Top MVP</div>
+  <div class="top-list" id="top-mvp"></div>
+  <div class="section-title">🎯 Top Bomber</div>
+  <div class="top-list" id="top-bomber"></div>
+  <div class="section-title">📋 Tutte le partite</div>
+  <div id="matches-list"></div>
+</div>
+<div class="page" id="page-giocatore">
+  <select class="player-select" id="player-select" onchange="showPlayerStats()">
+    <option value="">— Seleziona il tuo nome —</option>
+  </select>
+  <div id="player-content"></div>
+</div>
+<div class="page" id="page-curiosita"><div id="curiosita-content"></div></div>
+<script>
+const DEFAULT_MATCHES = [
+  {name:'Partita 1',date:45783,winner:'Squadra A',mvp:'Dema',teamA:[{name:'Conte',goals:0,won:1},{name:'Trombo',goals:2,won:1},{name:'Cresta',goals:1,won:1},{name:'Mara',goals:3,won:1},{name:'Deso',goals:0,won:1},{name:'Piè',goals:0,won:1},{name:'Giammi',goals:5,won:1},{name:'Dema',goals:5,won:1,mvp:1}],teamB:[{name:'Ugo',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Defi',goals:0,won:0},{name:'Monta',goals:2,won:0},{name:'DesJr',goals:0,won:0},{name:'Cares',goals:1,won:0},{name:'Michi',goals:0,won:0},{name:'Pecio',goals:2,won:0}]},
+  {name:'Partita 2',date:45789,winner:'Squadra A',mvp:'Michi',teamA:[{name:'Conte',goals:0,won:1},{name:'Piter',goals:0,won:1},{name:'Pecio',goals:1,won:1},{name:'Deso',goals:1,won:1},{name:'Monta',goals:1,won:1},{name:'Amico cares',goals:0,won:1},{name:'Cares',goals:1,won:1},{name:'Dema',goals:0,won:1}],teamB:[{name:'Ugo',goals:0,won:0},{name:'Bernist',goals:0,won:0},{name:'Benni',goals:0,won:0},{name:'DesJr',goals:0,won:0},{name:'Giammi',goals:0,won:0},{name:'Piè',goals:0,won:0},{name:'Tanque',goals:0,won:0},{name:'Michi',goals:3,won:0,mvp:1}]},
+  {name:'Partita 3',date:45799,winner:'Squadra B',mvp:'Monta',teamA:[{name:'Conte',goals:0,won:0},{name:'Maffe',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Zibo',goals:0,won:0},{name:'Berga',goals:1,won:0},{name:'Lanzo',goals:2,won:0},{name:'Ciglio',goals:2,won:0},{name:'Alex',goals:1,won:0}],teamB:[{name:'Ugo',goals:0,won:1},{name:'Trombo',goals:0,won:1},{name:'Tex',goals:1,won:1},{name:'Gabbro',goals:0,won:1},{name:'Mara',goals:2,won:1},{name:'Monta',goals:4,won:1,mvp:1},{name:'Piè',goals:0,won:1},{name:'Michi',goals:2,won:1}]},
+  {name:'Partita 4',date:45805,winner:'Squadra A',mvp:'Ugo',teamA:[{name:'Ugo',goals:0,won:1,mvp:1},{name:'Alex',goals:0,won:1},{name:'Trombo',goals:1,won:1},{name:'Cresta',goals:0,won:1},{name:'Lanzo',goals:2,won:1},{name:'Deso',goals:0,won:1},{name:'DesJr',goals:0,won:1},{name:'Michi',goals:1,won:1},{name:'Dema',goals:1,won:1}],teamB:[{name:'Maffe',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Tex',goals:0,won:0},{name:'Defi',goals:0,won:0},{name:'Monta',goals:2,won:0},{name:'Nico',goals:0,won:0},{name:'Piè',goals:0,won:0},{name:'Pecio',goals:0,won:0},{name:'Giammi',goals:0,won:0}]},
+  {name:'Partita 5',date:45811,winner:'Squadra A',mvp:'Trombo',teamA:[{name:'Ugo',goals:0,won:1},{name:'Trombo',goals:0,won:1,mvp:1},{name:'Gabbro',goals:0,won:1},{name:'Alex',goals:0,won:1},{name:'Berga',goals:0,won:1},{name:'Lanzo',goals:0,won:1},{name:'Jacopo',goals:0,won:1},{name:'Deso',goals:1,won:1},{name:'Pecio',goals:3,won:1},{name:'Dema',goals:1,won:1}],teamB:[{name:'Conte',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Cresta',goals:0,won:0},{name:'Defi',goals:0,won:0},{name:'Mara',goals:2,won:0},{name:'Monta',goals:0,won:0},{name:'DesJr',goals:0,won:0},{name:'Piè',goals:0,won:0},{name:'Michi',goals:1,won:0},{name:'Giammi',goals:0,won:0}]},
+  {name:'Partita 6',date:45820,winner:'Squadra A',mvp:'Ugo',teamA:[{name:'Ugo',goals:0,won:1,mvp:1},{name:'Piter',goals:0,won:1},{name:'Defi',goals:0,won:1},{name:'Amico Jaco',goals:0,won:1},{name:'Lillo',goals:1,won:1},{name:'Roble',goals:0,won:1},{name:'Deso',goals:1,won:1},{name:'Mancu',goals:0,won:1},{name:'Sergio',goals:0,won:1},{name:'Pecio',goals:3,won:1}],teamB:[{name:'Maffe',goals:0,won:0},{name:'Alex',goals:0,won:0},{name:'Bernist',goals:0,won:0},{name:'DesJr',goals:0,won:0},{name:'Monta',goals:0,won:0},{name:'Mara',goals:1,won:0},{name:'Jacopo',goals:1,won:0},{name:'Piè',goals:0,won:0},{name:'Giammi',goals:0,won:0},{name:'Dema',goals:0,won:0}]},
+  {name:'Partita 7',date:45825,winner:'Squadra B',mvp:'Ugo',teamA:[{name:'Dema SR',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Gabbro',goals:0,won:0},{name:'Cresta',goals:0,won:0},{name:'Mara',goals:1,won:0},{name:'Deso',goals:0,won:0},{name:'Jacopo',goals:1,won:0},{name:'Conte',goals:0,won:0},{name:'Dema',goals:0,won:0},{name:'Michael',goals:0,won:0}],teamB:[{name:'Ugo',goals:0,won:1,mvp:1},{name:'Tex',goals:0,won:1},{name:'Alex',goals:0,won:1},{name:'Defi',goals:0,won:1},{name:'Lillo',goals:2,won:1},{name:'Monta',goals:0,won:1},{name:'DesJr',goals:1,won:1},{name:'Galli',goals:0,won:1},{name:'Giammi',goals:0,won:1},{name:'Pecio',goals:1,won:1}]},
+  {name:'Partita 8',date:45833,winner:'Squadra A',mvp:'Trombo',teamA:[{name:'Dema SR',goals:0,won:1},{name:'Tex',goals:0,won:1},{name:'Brigi',goals:0,won:1},{name:'Lorenz',goals:0,won:1},{name:'Trombo',goals:0,won:1,mvp:1},{name:'Alex',goals:0,won:1},{name:'Ghiro',goals:0,won:1},{name:'Monta',goals:0,won:1},{name:'Jacopo',goals:2,won:1},{name:'Pecio',goals:2,won:1}],teamB:[{name:'Ugo',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Sive',goals:0,won:0},{name:'Defi',goals:0,won:0},{name:'Galli',goals:0,won:0},{name:'Lillo',goals:0,won:0},{name:'Mara',goals:0,won:0},{name:'Berga',goals:0,won:0},{name:'Dema',goals:1,won:0},{name:'Pasqu',goals:1,won:0}]},
+  {name:'Partita 9',date:45838,winner:'Squadra A',mvp:'Piter',teamA:[{name:'Ugo',goals:0,won:1},{name:'Piter',goals:0,won:1,mvp:1},{name:'Sive',goals:0,won:1},{name:'Defi',goals:0,won:1},{name:'Dalzo',goals:1,won:1},{name:'Lanzo',goals:0,won:1},{name:'Deso',goals:0,won:1},{name:'Gabbro',goals:0,won:1},{name:'Dema',goals:1,won:1},{name:'Conte',goals:1,won:1}],teamB:[{name:'Dema SR',goals:0,won:0},{name:'Tex',goals:0,won:0},{name:'Brigi',goals:0,won:0},{name:'Alex',goals:0,won:0},{name:'Trombo',goals:0,won:0},{name:'Mara',goals:1,won:0},{name:'Ghiro',goals:0,won:0},{name:'DesJr',goals:0,won:0},{name:'Jacopo',goals:1,won:0},{name:'Pecio',goals:0,won:0}]},
+  {name:'Partita 10',date:45846,winner:'Squadra A',mvp:'Dema SR',teamA:[{name:'Dema SR',goals:0,won:1,mvp:1},{name:'Piter',goals:0,won:1},{name:'Dalzo',goals:0,won:1},{name:'Brigi',goals:0,won:1},{name:'Ghiro',goals:0,won:1},{name:'Lanzo',goals:1,won:1},{name:'Nico',goals:2,won:1},{name:'Pecio',goals:0,won:1},{name:'Dema',goals:0,won:1}],teamB:[{name:'Ugo',goals:0,won:0},{name:'Defi',goals:0,won:0},{name:'Trombo',goals:0,won:0},{name:'Alex',goals:0,won:0},{name:'Mara',goals:0,won:0},{name:'Monta',goals:0,won:0},{name:'Michael',goals:2,won:0},{name:'Jacopo',goals:0,won:0},{name:'Giammi',goals:0,won:0}]},
+  {name:'Partita 11',date:45852,winner:'Squadra B',mvp:'Mara',teamA:[{name:'Ugo',goals:0,won:0},{name:'Cresta',goals:0,won:0},{name:'Brigi',goals:0,won:0},{name:'Defi',goals:0,won:0},{name:'Lanzo',goals:1,won:0},{name:'Berga',goals:0,won:0},{name:'Ghiro',goals:0,won:0},{name:'Cares',goals:0,won:0},{name:'Giammi',goals:0,won:0},{name:'Conte',goals:0,won:0}],teamB:[{name:'Dema SR',goals:0,won:1},{name:'Dalzo',goals:0,won:1},{name:'Alex',goals:0,won:1},{name:'Trombo',goals:0,won:1},{name:'Mara',goals:0,won:1,mvp:1},{name:'Jacopo',goals:0,won:1},{name:'Borghe',goals:1,won:1},{name:'DesJr',goals:0,won:1},{name:'Pecio',goals:1,won:1},{name:'Michi',goals:2,won:1}]},
+  {name:'Partita 12',date:46156,winner:'Squadra A',mvp:null,teamA:[{name:'Ugo',goals:0,won:1},{name:'Trombo',goals:0,won:1},{name:'Sive',goals:0,won:1},{name:'Berga',goals:2,won:1},{name:'Ghiro',goals:0,won:1},{name:'Monta',goals:2,won:1},{name:'Zibo',goals:0,won:1},{name:'Pecio',goals:2,won:1}],teamB:[{name:'Dema SR',goals:0,won:0},{name:'Alex',goals:0,won:0},{name:'Brigi',goals:0,won:0},{name:'Divi',goals:2,won:0},{name:'Amico Brigi',goals:0,won:0},{name:'Mara',goals:1,won:0},{name:'Michi',goals:2,won:0},{name:'Jacopo',goals:0,won:0}]},
+  {name:'Partita 13',date:46163,winner:'Squadra A',mvp:null,teamA:[{name:'Varliero',goals:0,won:1},{name:'Conte',goals:1,won:1},{name:'Cresta',goals:0,won:1},{name:'Alex',goals:0,won:1},{name:'Sive',goals:0,won:1},{name:'Trombo',goals:0,won:1},{name:'Monta',goals:0,won:1},{name:'Michi',goals:2,won:1}],teamB:[{name:'Ugo',goals:0,won:0},{name:'Galli',goals:0,won:0},{name:'Piter',goals:0,won:0},{name:'Zibo',goals:0,won:0},{name:'Brigi',goals:1,won:0},{name:'Mara',goals:0,won:0},{name:'Berga',goals:0,won:0},{name:'Pecio',goals:1,won:0}]},
+  {name:'Partita 14',date:46170,winner:'Squadra A',mvp:null,teamA:[{name:'Ugo',goals:0,won:1},{name:'Piter',goals:0,won:1},{name:'Brigi',goals:0,won:1},{name:'Galli',goals:0,won:1},{name:'Dalzo',goals:0,won:1},{name:'Mara',goals:1,won:1},{name:'Marci',goals:2,won:1},{name:'Dema',goals:2,won:1},{name:'Michael',goals:1,won:1}],teamB:[{name:'Dema SR',goals:0,won:0},{name:'Alex',goals:0,won:0},{name:'Cresta',goals:1,won:0},{name:'Trombo',goals:0,won:0},{name:'Zibo',goals:0,won:0},{name:'Monta',goals:0,won:0},{name:'Pecio',goals:1,won:0},{name:'Michi',goals:0,won:0},{name:'Welly',goals:0,won:0}]},
+];
+const DEFAULT_PLAYERS = [
+  {name:'Ugo',played:14,won:8,pct:0.571,goals:0,mvp:3,avgGoals:0,cash:78},
+  {name:'Trombo',played:11,won:8,pct:0.727,goals:3,mvp:2,avgGoals:0.273,cash:51},
+  {name:'Pecio',played:13,won:8,pct:0.615,goals:17,mvp:0,avgGoals:1.308,cash:69},
+  {name:'Dema',played:10,won:7,pct:0.7,goals:11,mvp:1,avgGoals:1.1,cash:48},
+  {name:'Deso',played:7,won:6,pct:0.857,goals:3,mvp:0,avgGoals:0.429,cash:27},
+  {name:'Monta',played:12,won:6,pct:0.5,goals:11,mvp:1,avgGoals:0.917,cash:72},
+  {name:'Alex',played:12,won:6,pct:0.5,goals:1,mvp:0,avgGoals:0.083,cash:72},
+  {name:'Mara',played:12,won:4,pct:0.333,goals:12,mvp:1,avgGoals:1,cash:84},
+  {name:'Michi',played:9,won:4,pct:0.444,goals:13,mvp:1,avgGoals:1.444,cash:57},
+  {name:'Piter',played:12,won:5,pct:0.417,goals:0,mvp:1,avgGoals:0,cash:78},
+  {name:'Lanzo',played:6,won:4,pct:0.667,goals:6,mvp:0,avgGoals:1,cash:30},
+  {name:'Ghiro',played:5,won:3,pct:0.6,goals:0,mvp:0,avgGoals:0,cash:27},
+  {name:'Sive',played:4,won:3,pct:0.75,goals:0,mvp:0,avgGoals:0,cash:18},
+  {name:'Gabbro',played:4,won:3,pct:0.75,goals:0,mvp:0,avgGoals:0,cash:18},
+  {name:'Tex',played:5,won:3,pct:0.6,goals:1,mvp:0,avgGoals:0.2,cash:27},
+  {name:'Dalzo',played:4,won:4,pct:1,goals:1,mvp:0,avgGoals:0.25,cash:12},
+  {name:'Dema SR',played:7,won:3,pct:0.429,goals:0,mvp:1,avgGoals:0,cash:45},
+  {name:'Conte',played:8,won:4,pct:0.5,goals:2,mvp:0,avgGoals:0.25,cash:48},
+  {name:'Jacopo',played:8,won:3,pct:0.375,goals:5,mvp:0,avgGoals:0.625,cash:54},
+  {name:'DesJr',played:8,won:3,pct:0.375,goals:1,mvp:0,avgGoals:0.125,cash:54},
+  {name:'Defi',played:9,won:3,pct:0.333,goals:0,mvp:0,avgGoals:0,cash:63},
+  {name:'Brigi',played:7,won:3,pct:0.429,goals:1,mvp:0,avgGoals:0.143,cash:45},
+  {name:'Cresta',played:7,won:3,pct:0.429,goals:2,mvp:0,avgGoals:0.286,cash:45},
+  {name:'Galli',played:4,won:2,pct:0.5,goals:0,mvp:0,avgGoals:0,cash:24},
+  {name:'Lillo',played:3,won:2,pct:0.667,goals:3,mvp:0,avgGoals:1,cash:15},
+  {name:'Giammi',played:8,won:2,pct:0.25,goals:5,mvp:0,avgGoals:0.625,cash:60},
+  {name:'Berga',played:6,won:2,pct:0.333,goals:3,mvp:0,avgGoals:0.5,cash:42},
+  {name:'Cares',played:3,won:1,pct:0.333,goals:2,mvp:0,avgGoals:0.667,cash:21},
+  {name:'Michael',played:3,won:1,pct:0.333,goals:3,mvp:0,avgGoals:1,cash:21},
+  {name:'Nico',played:2,won:1,pct:0.5,goals:2,mvp:0,avgGoals:1,cash:12},
+  {name:'Zibo',played:4,won:1,pct:0.25,goals:0,mvp:0,avgGoals:0,cash:30},
+  {name:'Piè',played:6,won:2,pct:0.333,goals:0,mvp:0,avgGoals:0,cash:42},
+  {name:'Maffe',played:3,won:0,pct:0,goals:0,mvp:0,avgGoals:0,cash:27},
+  {name:'Bernist',played:2,won:0,pct:0,goals:0,mvp:0,avgGoals:0,cash:18},
+];
+let appData = { matches: [], players: [] };
+
+function excelDateToJS(serial){if(!serial||isNaN(serial))return '';const d=new Date((serial-25569)*86400*1000);return `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;}
+function norm(n){return (n||'').toString().trim();}
+
+function handleFile(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{const wb=XLSX.read(e.target.result,{type:'array'});parseWorkbook(wb);
+      document.getElementById('file-status').textContent='✅ '+file.name+' caricato';
+      document.getElementById('file-status').style.color='var(--green)';
+    }catch(err){alert('Errore: '+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseWorkbook(wb){
+  const calSheet=wb.Sheets['Calendario_Partite'];
+  const statSheet=wb.Sheets['Statistiche_Giocatori'];
+  if(!calSheet){alert('Foglio "Calendario_Partite" non trovato');return;}
+  const rows=XLSX.utils.sheet_to_json(calSheet,{defval:0});
+  const matchMap={};
+  rows.forEach(r=>{
+    const partita=r['Partita'];
+    if(!matchMap[partita])matchMap[partita]={name:partita,date:r['Data'],teamA:[],teamB:[],winner:null,mvp:null};
+    const player={name:norm(r['Nome']),goals:Number(r['Goal ']||r['Goal']||0),won:Number(r['Vincente ']||r['Vincente']||0),mvp:Number(r['MVP della partita']||0)};
+    if(r['Squadra']==='Squadra A')matchMap[partita].teamA.push(player);else matchMap[partita].teamB.push(player);
+    if(player.won===1)matchMap[partita].winner=r['Squadra'];
+    if(player.mvp===1)matchMap[partita].mvp=player.name;
+  });
+  appData.matches=Object.values(matchMap).sort((a,b)=>Number(a.date)-Number(b.date));
+  if(statSheet){
+    const sr=XLSX.utils.sheet_to_json(statSheet,{defval:0});
+    appData.players=sr.map(r=>({name:norm(r['Giocatore']),played:Number(r['Partite giocate']||0),won:Number(r['Partite Vinte']||0),pct:Number(r['% Vittoria']||0),goals:Number(r['Goal totali']||0),mvp:Number(r['MVP ricevuti']||0),avgGoals:Number(r['Media goal/partita']||0),cash:Number(r['Cash ']||r['Cash']||0)})).filter(p=>p.name&&p.played>0);
+  }else{appData.players=buildPlayersFromMatches();}
+  renderAll();
+}
+
+function buildPlayersFromMatches(){
+  const map={};
+  appData.matches.forEach(m=>{
+    [...m.teamA,...m.teamB].forEach(p=>{
+      const n=norm(p.name);
+      if(!map[n])map[n]={name:n,played:0,won:0,goals:0,mvp:0,cash:0};
+      map[n].played++;map[n].won+=p.won?1:0;map[n].goals+=p.goals||0;map[n].mvp+=p.mvp?1:0;map[n].cash+=p.won?3:9;
+    });
+  });
+  return Object.values(map).map(p=>({...p,pct:p.played?p.won/p.played:0,avgGoals:p.played?p.goals/p.played:0})).filter(p=>p.played>0);
+}
+
+function loadDefaultData(){
+  appData.matches=DEFAULT_MATCHES;
+  appData.players=DEFAULT_PLAYERS;
+  renderAll();
+}
+
+function renderAll(){renderClassifica();renderPlayerSelect();renderCuriosity();}
+
+function matchGoals(m){return [...m.teamA,...m.teamB].reduce((s,p)=>s+(p.goals||0),0);}
+
+function renderClassifica(){
+  const m=appData.matches,p=appData.players;
+  const totalGoals=m.reduce((s,x)=>s+matchGoals(x),0);
+  const totalPlayers=new Set(m.flatMap(x=>[...x.teamA,...x.teamB].map(pl=>norm(pl.name)))).size;
+  const totalCash=p.reduce((s,x)=>s+x.cash,0);
+  const avgGoals=m.length?(totalGoals/m.length).toFixed(1):0;
+  document.getElementById('top-stats').innerHTML=`
+    <div class="stat-card hl"><div class="stat-num">${m.length}</div><div class="stat-label">Partite</div></div>
+    <div class="stat-card"><div class="stat-num">${totalPlayers}</div><div class="stat-label">Giocatori</div></div>
+    <div class="stat-card"><div class="stat-num">${totalGoals}</div><div class="stat-label">Goal totali</div></div>`;
+  document.getElementById('extra-stats').innerHTML=`
+    <div class="extra-card"><div class="extra-icon">⚽</div><div><div class="extra-val">${avgGoals}</div><div class="extra-lbl">Goal per partita</div></div></div>
+    <div class="extra-card"><div class="extra-icon">💶</div><div><div class="extra-val">€${totalCash}</div><div class="extra-lbl">Cash totale</div></div></div>`;
+  const byWins=[...p].filter(x=>x.played>=3).sort((a,b)=>b.won-a.won||b.pct-a.pct).slice(0,3);
+  if(byWins.length>=3){
+    const ord=[byWins[1],byWins[0],byWins[2]],cls=['second','first','third'],crown=['🥈','🥇','🥉'];
+    document.getElementById('podium-vittorie').innerHTML=ord.map((pl,i)=>`<div class="podium-item ${cls[i]}"><div class="podium-crown">${crown[i]}</div><div class="podium-name">${pl.name}</div><div class="podium-big">${pl.won}</div><div class="podium-val">${(pl.pct*100).toFixed(0)}% vinte</div></div>`).join('');
+  }
+  const mc=['gold','silver','bronze','',''];
+  const topMvp=[...p].filter(x=>x.mvp>0).sort((a,b)=>b.mvp-a.mvp).slice(0,5);
+  document.getElementById('top-mvp').innerHTML=topMvp.map((pl,i)=>`<div class="top-row"><div class="rank-num ${mc[i]||''}">${i+1}</div><div><div class="rank-name">${pl.name}</div><div class="rank-sub">${pl.played} partite</div></div><div class="rank-val">⭐ ${pl.mvp}</div></div>`).join('');
+  const topBomber=[...p].filter(x=>x.goals>0).sort((a,b)=>b.goals-a.goals).slice(0,5);
+  document.getElementById('top-bomber').innerHTML=topBomber.map((pl,i)=>`<div class="top-row"><div class="rank-num ${mc[i]||''}">${i+1}</div><div><div class="rank-name">${pl.name}</div><div class="rank-sub">${pl.avgGoals.toFixed(2)} media/gara</div></div><div class="rank-val">⚽ ${pl.goals}</div></div>`).join('');
+  document.getElementById('matches-list').innerHTML=[...m].reverse().map(match=>{
+    const aWon=match.winner==='Squadra A',bWon=match.winner==='Squadra B';
+    const ga=match.teamA.reduce((s,p)=>s+(p.goals||0),0),gb=match.teamB.reduce((s,p)=>s+(p.goals||0),0);
+    return `<div class="match-card"><div class="match-header"><div class="match-name">${match.name}</div><div class="match-date">${excelDateToJS(match.date)}</div></div><div class="match-score">${ga} - ${gb}</div><div class="match-teams"><div><div class="team-label ${aWon?'win':'lose'}">Squadra A ${aWon?'✓':''}</div><div class="team-players ${aWon?'winner':''}">${match.teamA.map(p=>p.name).join(', ')}</div></div><div class="vs-badge">VS</div><div><div class="team-label ${bWon?'win':'lose'}">Squadra B ${bWon?'✓':''}</div><div class="team-players ${bWon?'winner':''}">${match.teamB.map(p=>p.name).join(', ')}</div></div></div>${match.mvp?`<div class="match-mvp">⭐ MVP: <span class="mvp-name">${match.mvp}</span></div>`:''}</div>`;
+  }).join('');
+}
+
+function renderPlayerSelect(){
+  const sel=document.getElementById('player-select'),cur=sel.value;
+  const pl=[...appData.players].sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML='<option value="">— Seleziona il tuo nome —</option>'+pl.map(p=>`<option value="${p.name}"${p.name===cur?' selected':''}>${p.name}</option>`).join('');
+  if(cur)showPlayerStats();
+}
+
+function showPlayerStats(){
+  const name=document.getElementById('player-select').value;
+  const c=document.getElementById('player-content');
+  if(!name){c.innerHTML='';return;}
+  const p=appData.players.find(x=>x.name===name);
+  if(!p){c.innerHTML='<div style="text-align:center;color:var(--text2);padding:30px">Giocatore non trovato</div>';return;}
+  const losses=p.played-p.won,pctStr=(p.pct*100).toFixed(0)+'%';
+  const maxWins=Math.max(...appData.players.map(x=>x.won));
+  const maxMvp=Math.max(...appData.players.map(x=>x.mvp));
+  const maxGoals=Math.max(...appData.players.map(x=>x.goals));
+  const maxPct=Math.max(...appData.players.filter(x=>x.played>=3).map(x=>x.pct));
+  let badges='';
+  if(p.mvp===maxMvp&&p.mvp>0)badges+='<div class="badge badge-gold">👑 MVP King</div>';
+  if(p.goals===maxGoals&&p.goals>0)badges+='<div class="badge badge-green">🎯 Top Scorer</div>';
+  if(p.won===maxWins&&p.won>0)badges+='<div class="badge badge-green">🏆 Più Vittorie</div>';
+  if(p.pct===maxPct&&p.played>=3)badges+='<div class="badge badge-gold">🔥 Win Rate #1</div>';
+  if(p.pct>=0.8&&p.played>=4)badges+='<div class="badge badge-green">💪 Dominante</div>';
+  if(p.played>=10)badges+='<div class="badge badge-blue">⚽ Veterano</div>';
+  if(p.pct===1&&p.played>=3)badges+='<div class="badge badge-gold">😤 Imbattuto</div>';
+  const pm=[];
+  appData.matches.forEach(match=>{
+    const found=[...match.teamA,...match.teamB].find(x=>norm(x.name)===name);
+    if(found)pm.push({match,player:found});
+  });
+  const last10=pm.slice(-10);
+  const barHtml=last10.length?`<div class="section-title">📈 Ultimi ${last10.length} risultati</div><div class="bar-chart">${last10.map(({match,player})=>{const w=player.won===1;return `<div class="bar-row"><div class="bar-label">${match.name.replace('Partita ','P')}</div><div class="bar-track"><div class="bar-fill ${w?'win':'loss'}" style="width:${w?100:40}%">${w?'V':'P'}</div></div>${(player.goals||0)>0?`<div style="font-family:'Oswald',sans-serif;font-size:12px;color:var(--green);min-width:22px">+${player.goals}</div>`:'<div style="min-width:22px"></div>'}${player.mvp?'<div class="mvp-star">⭐</div>':'<div style="width:16px"></div>'}</div>`;}).join('')}</div>`:'';
+  const histHtml=pm.length?`<div class="section-title">📋 Storico partite</div>${[...pm].reverse().map(({match,player})=>`<div class="history-match"><div class="result-dot ${player.won===1?'win':'loss'}"></div><div><div class="history-match-name">${match.name}${player.mvp?' ⭐':''}</div><div class="history-match-date">${excelDateToJS(match.date)}</div></div><div class="history-goals ${(player.goals||0)>0?'has-goals':'no-goals'}">${(player.goals||0)>0?player.goals+'⚽':'—'}</div></div>`).join('')}`:'';
+  c.innerHTML=`${badges?`<div class="badges-row">${badges}</div>`:''}<div class="player-stats-grid"><div class="player-stat"><div class="player-stat-val">${p.played}</div><div class="player-stat-label">Partite giocate</div></div><div class="player-stat"><div class="player-stat-val">${p.won}</div><div class="player-stat-label">Vittorie</div></div><div class="player-stat"><div class="player-stat-val">${losses}</div><div class="player-stat-label">Sconfitte</div></div><div class="player-stat"><div class="player-stat-val">${pctStr}</div><div class="player-stat-label">% Vittoria</div></div><div class="player-stat"><div class="player-stat-val">${p.goals}</div><div class="player-stat-label">Goal totali</div></div><div class="player-stat"><div class="player-stat-val">⭐ ${p.mvp}</div><div class="player-stat-label">MVP ricevuti</div></div></div><div class="cash-row"><div class="cash-label">💶 Cash pagato totale</div><div class="cash-val">€${p.cash}</div></div>${barHtml}${histHtml}`;
+}
+
+function renderCuriosity(){
+  const m=appData.matches,p=appData.players;
+  if(!m.length)return;
+  const gbm=m.map(x=>({name:x.name,goals:matchGoals(x)}));
+  const maxGM=gbm.reduce((a,b)=>a.goals>b.goals?a:b);
+  const minGM=gbm.reduce((a,b)=>a.goals<b.goals?a:b);
+  const total=gbm.reduce((s,x)=>s+x.goals,0);
+  const avg=(total/m.length).toFixed(1);
+  let maxStreak=0,streakPlayer='';
+  p.filter(x=>x.played>=3).forEach(pl=>{
+    let cs=0,ms=0;
+    m.forEach(match=>{const f=[...match.teamA,...match.teamB].find(x=>norm(x.name)===pl.name);if(f){if(f.won===1){cs++;if(cs>ms)ms=cs;}else cs=0;}});
+    if(ms>maxStreak){maxStreak=ms;streakPlayer=pl.name;}
+  });
+  const biggest=m.reduce((a,b)=>(a.teamA.length+a.teamB.length)>(b.teamA.length+b.teamB.length)?a:b);
+  const topScorer=[...p].filter(x=>x.goals>0).sort((a,b)=>b.goals-a.goals)[0];
+  const maxG=Math.max(...gbm.map(x=>x.goals));
+  const barChart=`<div class="section-title">⚽ Goal per partita</div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px"><div class="goal-bars">${gbm.map(x=>`<div class="goal-bar-wrap"><div class="goal-bar-val">${x.goals}</div><div class="goal-bar" style="height:${maxG>0?Math.max(8,Math.round(x.goals/maxG*64)):8}px"></div><div class="goal-bar-lbl">${x.name.replace('Partita ','P')}</div></div>`).join('')}</div><div style="font-size:11px;color:var(--text2);text-align:center;margin-top:4px">Media: ${avg} goal a partita</div></div>`;
+  const topWR=[...p].filter(x=>x.played>=3).sort((a,b)=>b.pct-a.pct).slice(0,3);
+  document.getElementById('curiosita-content').innerHTML=`${barChart}<div class="section-title">🔍 Stats interessanti</div><div class="curiosita-grid"><div class="curi-card"><div class="curi-icon">🔥</div><div class="curi-title">Partita più golosa</div><div class="curi-val">${maxGM.name}</div><div class="curi-sub">${maxGM.goals} goal totali</div></div><div class="curi-card"><div class="curi-icon">🪨</div><div class="curi-title">Più difensiva</div><div class="curi-val">${minGM.name}</div><div class="curi-sub">${minGM.goals} goal totali</div></div><div class="curi-card"><div class="curi-icon">⚡</div><div class="curi-title">Striscia vincente</div><div class="curi-val">${streakPlayer}</div><div class="curi-sub">${maxStreak} vittorie di fila</div></div><div class="curi-card"><div class="curi-icon">🎯</div><div class="curi-title">Capocannoniere</div><div class="curi-val">${topScorer?topScorer.name:'—'}</div><div class="curi-sub">${topScorer?topScorer.goals:0} goal totali</div></div><div class="curi-card"><div class="curi-icon">👥</div><div class="curi-title">Partita più grande</div><div class="curi-val">${biggest.name}</div><div class="curi-sub">${biggest.teamA.length+biggest.teamB.length} giocatori</div></div><div class="curi-card"><div class="curi-icon">📅</div><div class="curi-title">Prima partita</div><div class="curi-val">${excelDateToJS(m[0].date)}</div><div class="curi-sub">${m.length} partite in totale</div></div></div><div class="section-title">📊 Top % vittoria (min 3 partite)</div><div class="top-list">${topWR.map((pl,i)=>`<div class="top-row"><div class="rank-num ${['gold','silver','bronze'][i]||''}">${i+1}</div><div><div class="rank-name">${pl.name}</div><div class="rank-sub">${pl.won}V / ${pl.played}P</div></div><div class="rank-val">${(pl.pct*100).toFixed(0)}%</div></div>`).join('')}</div><div class="section-title">💰 Cash totale versato</div><div class="top-list">${[...p].sort((a,b)=>b.cash-a.cash).slice(0,5).map((pl,i)=>`<div class="top-row"><div class="rank-num ${['gold','silver','bronze'][i]||''}">${i+1}</div><div><div class="rank-name">${pl.name}</div><div class="rank-sub">${pl.played} partite</div></div><div class="rank-val" style="color:var(--yellow)">€${pl.cash}</div></div>`).join('')}</div>`;
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['classifica','giocatore','curiosita'][i]===tab));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+}
+loadDefaultData();
+</script>
+</body>
+</html>
